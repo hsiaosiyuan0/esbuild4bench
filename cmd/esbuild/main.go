@@ -3,12 +3,15 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"runtime/debug"
 	"strings"
 	"time"
 
 	"github.com/evanw/esbuild/internal/api_helpers"
+	"github.com/evanw/esbuild/internal/config"
+	"github.com/evanw/esbuild/internal/js_parser"
 	"github.com/evanw/esbuild/internal/logger"
 	"github.com/evanw/esbuild/pkg/cli"
 )
@@ -54,6 +57,7 @@ var helpText = func(colors logger.Colors) string {
                         safari11, edge16, node10, ie9, opera45, default esnext)
   --watch               Watch mode: rebuild on file system changes (stops when
                         stdin is closed, use "--watch=forever" to ignore stdin)
+  --parse               Parse the source file only
 
 ` + colors.Bold + `Advanced options:` + colors.Reset + `
   --allow-overwrite         Allow output files to overwrite input files
@@ -209,6 +213,33 @@ func main() {
 
 		case strings.HasPrefix(arg, "--ping"):
 			sendPings = true
+
+		case strings.HasPrefix(arg, "--parse="):
+			parseOnlyFile := arg[len("--parse="):]
+			contents, err := ioutil.ReadFile(parseOnlyFile)
+			if err != nil {
+				panic(err)
+			}
+
+			log := logger.NewDeferLog(logger.DeferLogAll, nil)
+			_, ok := js_parser.Parse(log, logger.Source{
+				Index:          0,
+				KeyPath:        logger.Path{Text: "<stdin>"},
+				PrettyPath:     "<stdin>",
+				Contents:       string(contents),
+				IdentifierName: "stdin",
+			}, js_parser.OptionsFromConfig(&config.Options{
+				TS:        config.TSOptions{Parse: true},
+				ParseOnly: true,
+			}))
+			if !ok {
+				text := ""
+				for _, msg := range log.Done() {
+					text += msg.String(logger.OutputOptions{}, logger.TerminalInfo{})
+				}
+				panic(text)
+			}
+			return
 
 		default:
 			// Some people want to be able to run esbuild's watch mode such that it

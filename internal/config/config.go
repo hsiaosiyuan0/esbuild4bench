@@ -479,6 +479,8 @@ type Options struct {
 	NeedsMetafile          bool
 	SourceMap              SourceMap
 	ExcludeSourcesContent  bool
+
+	ParseOnly bool
 }
 
 type TSImportsNotUsedAsValues uint8

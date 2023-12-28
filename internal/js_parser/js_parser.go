@@ -461,6 +461,8 @@ type Options struct {
 	// the name "optionsThatSupportStructuralEquality". This is only grouped like
 	// this to make the equality comparison easier and safer (and hopefully faster).
 	optionsThatSupportStructuralEquality
+
+	parseOnly bool
 }
 
 type optionsThatSupportStructuralEquality struct {
@@ -531,6 +533,8 @@ func OptionsFromConfig(options *config.Options) Options {
 			dropDebugger:                      options.DropDebugger,
 			mangleQuoted:                      options.MangleQuoted,
 		},
+
+		parseOnly: options.ParseOnly,
 	}
 }
 
@@ -16878,6 +16882,10 @@ func Parse(log logger.Log, source logger.Source, options Options) (result js_ast
 		isModuleScope:          true,
 		allowDirectivePrologue: true,
 	})
+	if options.parseOnly {
+		fmt.Println(len(stmts))
+		return
+	}
 	p.prepareForVisitPass()
 
 	// Insert a "use strict" directive if "alwaysStrict" is active
